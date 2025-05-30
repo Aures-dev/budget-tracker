@@ -1,15 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { BudgetData, Transaction, CategoryTotal } from '@/types';
-import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
-import { INITIAL_BUDGET_DATA, CATEGORIES } from '@/lib/constants';
+import { BudgetData, Transaction, CategoryTotal, User } from '@/types';
+import { CATEGORIES } from '@/lib/constants';
 
 interface BudgetContextType {
   transactions: Transaction[];
   user: BudgetData['user'];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   login: (username: string) => void;
   logout: () => void;
   toggleTheme: () => void;
@@ -22,16 +21,47 @@ interface BudgetContextType {
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
 export const BudgetProvider = ({ children }: { children: ReactNode }) => {
-  const [budgetData, setBudgetData] = useLocalStorage<BudgetData>('budgetData', INITIAL_BUDGET_DATA);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [user, setUser] = useState<BudgetData['user']>(null);
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
   const [balance, setBalance] = useState(0);
   const [expenseTotal, setExpenseTotal] = useState(0);
   const [incomeTotal, setIncomeTotal] = useState(0);
 
+  // Load user from localStorage on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem('budgetUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  // Load transactions when user changes
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+    } else {
+      setTransactions([]);
+    }
+  }, [user]);
+
   // Calculate totals whenever transactions change
   useEffect(() => {
     calculateTotals();
-  }, [budgetData.transactions]);
+  }, [transactions]);
+
+  const fetchTransactions = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/transactions?userId=${user.username}`);
+      if (!response.ok) throw new Error('Failed to fetch transactions');
+      const data = await response.json();
+      setTransactions(data);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
 
   const calculateTotals = () => {
     // Calculate category totals for expenses
@@ -39,7 +69,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     let totalExpenses = 0;
     let totalIncome = 0;
     
-    budgetData.transactions.forEach(transaction => {
+    transactions.forEach(transaction => {
       if (transaction.type === 'expense') {
         const currentTotal = categoryMap.get(transaction.category) || 0;
         categoryMap.set(transaction.category, currentTotal + transaction.amount);
@@ -66,64 +96,84 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     setBalance(totalIncome - totalExpenses);
   };
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: Date.now().toString()
-    };
-    
-    setBudgetData(prev => ({
-      ...prev,
-      transactions: [newTransaction, ...prev.transactions]
-    }));
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...transaction,
+          userId: user.username,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to add transaction');
+      
+      const newTransaction = await response.json();
+      setTransactions(prev => [newTransaction, ...prev]);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      throw error;
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    setBudgetData(prev => ({
-      ...prev,
-      transactions: prev.transactions.filter(t => t.id !== id)
-    }));
+  const deleteTransaction = async (id: string) => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/transactions?id=${id}&userId=${user.username}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete transaction');
+      
+      setTransactions(prev => prev.filter(t => t._id !== id));
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
   };
 
   const login = (username: string) => {
-    setBudgetData(prev => ({
-      ...prev,
-      user: {
-        username,
-        preferences: {
-          theme: prev.user?.preferences.theme || 'light'
-        }
+    const userData: User = {
+      username,
+      preferences: {
+        theme: 'light' as const
       }
-    }));
+    };
+    setUser(userData);
+    localStorage.setItem('budgetUser', JSON.stringify(userData));
   };
 
   const logout = () => {
-    setBudgetData(prev => ({
-      ...prev,
-      user: null
-    }));
+    setUser(null);
+    localStorage.removeItem('budgetUser');
   };
 
   const toggleTheme = () => {
-    if (!budgetData.user) return;
+    if (!user) return;
     
-    setBudgetData(prev => ({
-      ...prev,
-      user: {
-        ...prev.user!,
-        preferences: {
-          ...prev.user!.preferences,
-          theme: prev.user!.preferences.theme === 'light' ? 'dark' : 'light'
-        }
+    const newUser: User = {
+      ...user,
+      preferences: {
+        ...user.preferences,
+        theme: user.preferences.theme === 'light' ? 'dark' : 'light'
       }
-    }));
+    };
+    
+    setUser(newUser);
+    localStorage.setItem('budgetUser', JSON.stringify(newUser));
   };
 
   return (
     <BudgetContext.Provider
       value={{
-        transactions: budgetData.transactions,
-        user: budgetData.user,
+        transactions,
+        user,
         addTransaction,
         deleteTransaction,
         login,
