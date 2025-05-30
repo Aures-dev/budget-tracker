@@ -27,13 +27,13 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     if (storedUser && token) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      fetchTransactions(token);
+      fetchTransactions(token, parsedUser.id);
     }
   }, []);
 
-  const fetchTransactions = async (token: string) => {
+  const fetchTransactions = async (token: string, userId: string) => {
     try {
-      const response = await fetch('/api/transactions', {
+      const response = await fetch(`/api/transactions?userId=${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

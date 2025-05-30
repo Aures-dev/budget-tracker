@@ -8,7 +8,7 @@ export interface RegisterCredentials extends LoginCredentials {
 }
 
 export interface IncomeSource {
-  _id: string;
+  _id?: string;
   name: string;
   isRecurring: boolean;
   frequency: 'weekly' | 'monthly' | 'yearly';
