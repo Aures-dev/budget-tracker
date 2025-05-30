@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBudget } from '@/contexts/BudgetContext';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -9,30 +9,63 @@ import { Doughnut } from 'react-chartjs-2';
 // Register Chart.js components
 Chart.register(ArcElement, Tooltip, Legend);
 
-export function ExpensesChart() {
-  const { categoryTotals, expenseTotal } = useBudget();
-  const chartRef = useRef<Chart | null>(null);
+// Couleurs pour les catégories
+const COLORS = [
+  '#8b5cf6', // violet-500
+  '#6366f1', // indigo-500
+  '#3b82f6', // blue-500
+  '#0ea5e9', // sky-500
+  '#06b6d4', // cyan-500
+  '#14b8a6', // teal-500
+  '#10b981', // emerald-500
+  '#22c55e', // green-500
+];
 
-  // Only show the chart if there are expenses
+export function ExpensesChart() {
+  const { transactions, formatCurrency } = useBudget();
+
+  const { categoryTotals, expenseTotal } = useMemo(() => {
+    const expenseTotals = new Map<string, number>();
+    let total = 0;
+
+    transactions
+      .filter(t => t.type === 'expense')
+      .forEach(transaction => {
+        const current = expenseTotals.get(transaction.category) || 0;
+        expenseTotals.set(transaction.category, current + transaction.amount);
+        total += transaction.amount;
+      });
+
+    const totals = Array.from(expenseTotals.entries()).map(([category, amount], index) => ({
+      category,
+      total: amount,
+      color: COLORS[index % COLORS.length]
+    }));
+
+    return {
+      categoryTotals: totals,
+      expenseTotal: total
+    };
+  }, [transactions]);
+
   if (categoryTotals.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Expenses by Category</CardTitle>
+          <CardTitle>Dépenses par catégorie</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center py-10">
           <p className="text-muted-foreground text-center">
-            No expense data available yet.
+            Aucune dépense enregistrée.
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Add transactions to see your spending breakdown.
+            Ajoutez des transactions pour voir la répartition.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  // Format data for Chart.js
   const data = {
     labels: categoryTotals.map(c => c.category),
     datasets: [
@@ -46,7 +79,6 @@ export function ExpensesChart() {
     ],
   };
 
-  // Chart options
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -63,13 +95,8 @@ export function ExpensesChart() {
         callbacks: {
           label: function(context: any) {
             const value = context.raw;
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = Math.round((value / total) * 100);
-            const formattedValue = new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD'
-            }).format(value);
-            return `${context.label}: ${formattedValue} (${percentage}%)`;
+            const percentage = Math.round((value / expenseTotal) * 100);
+            return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
           }
         }
       }
@@ -78,9 +105,9 @@ export function ExpensesChart() {
   };
 
   return (
-    <Card className="transition-all duration-200 hover:shadow-md">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Expenses by Category</CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Dépenses par catégorie</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative h-[250px] w-full">
@@ -88,11 +115,7 @@ export function ExpensesChart() {
           <div className="absolute inset-0 flex items-center justify-center flex-col">
             <span className="text-sm text-muted-foreground">Total</span>
             <span className="text-xl font-bold">
-              {new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                maximumFractionDigits: 0,
-              }).format(expenseTotal)}
+              {formatCurrency(expenseTotal)}
             </span>
           </div>
         </div>

@@ -1,120 +1,73 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { BudgetData, Transaction, CategoryTotal, User } from '@/types';
-import { CATEGORIES } from '@/lib/constants';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AuthUser } from '@/types/auth';
+import { Transaction } from '@/types/transaction';
 
 interface BudgetContextType {
+  user: AuthUser | null;
   transactions: Transaction[];
-  user: BudgetData['user'];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, '_id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
-  login: (username: string) => void;
-  logout: () => void;
-  toggleTheme: () => void;
-  categoryTotals: CategoryTotal[];
-  balance: number;
-  expenseTotal: number;
-  incomeTotal: number;
+  updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
+  getCategoryOptions: (type: 'income' | 'expense') => string[];
+  formatCurrency: (amount: number) => string;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
-export const BudgetProvider = ({ children }: { children: ReactNode }) => {
+export function BudgetProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [user, setUser] = useState<BudgetData['user']>(null);
-  const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([]);
-  const [balance, setBalance] = useState(0);
-  const [expenseTotal, setExpenseTotal] = useState(0);
-  const [incomeTotal, setIncomeTotal] = useState(0);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('budgetUser');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (storedUser && token) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      fetchTransactions(token);
     }
   }, []);
 
-  // Load transactions when user changes
-  useEffect(() => {
-    if (user) {
-      fetchTransactions();
-    } else {
-      setTransactions([]);
-    }
-  }, [user]);
-
-  // Calculate totals whenever transactions change
-  useEffect(() => {
-    calculateTotals();
-  }, [transactions]);
-
-  const fetchTransactions = async () => {
-    if (!user) return;
-    
+  const fetchTransactions = async (token: string) => {
     try {
-      const response = await fetch(`/api/transactions?userId=${user.username}`);
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      const data = await response.json();
-      setTransactions(data);
+      const response = await fetch('/api/transactions', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data);
+      }
     } catch (error) {
       console.error('Error fetching transactions:', error);
     }
   };
 
-  const calculateTotals = () => {
-    // Calculate category totals for expenses
-    const categoryMap = new Map<string, number>();
-    let totalExpenses = 0;
-    let totalIncome = 0;
-    
-    transactions.forEach(transaction => {
-      if (transaction.type === 'expense') {
-        const currentTotal = categoryMap.get(transaction.category) || 0;
-        categoryMap.set(transaction.category, currentTotal + transaction.amount);
-        totalExpenses += transaction.amount;
-      } else {
-        totalIncome += transaction.amount;
-      }
-    });
-    
-    // Convert to array with colors
-    const totals: CategoryTotal[] = [];
-    categoryMap.forEach((total, category) => {
-      const categoryInfo = CATEGORIES.find(c => c.name === category) || { name: category, color: '#94a3b8' };
-      totals.push({
-        category,
-        total,
-        color: categoryInfo.color
-      });
-    });
-    
-    setCategoryTotals(totals);
-    setExpenseTotal(totalExpenses);
-    setIncomeTotal(totalIncome);
-    setBalance(totalIncome - totalExpenses);
-  };
-
-  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
-    if (!user) return;
+  const addTransaction = async (transaction: Omit<Transaction, '_id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    const token = localStorage.getItem('token');
+    if (!token || !user) return;
 
     try {
       const response = await fetch('/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           ...transaction,
-          userId: user.username,
-        }),
+          userId: user.id
+        })
       });
 
-      if (!response.ok) throw new Error('Failed to add transaction');
-      
-      const newTransaction = await response.json();
-      setTransactions(prev => [newTransaction, ...prev]);
+      if (response.ok) {
+        const newTransaction = await response.json();
+        setTransactions(prev => [...prev, newTransaction]);
+      }
     } catch (error) {
       console.error('Error adding transaction:', error);
       throw error;
@@ -122,78 +75,102 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!user) return;
+    const token = localStorage.getItem('token');
+    if (!token || !user) return;
 
     try {
-      const response = await fetch(`/api/transactions?id=${id}&userId=${user.username}`, {
+      const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to delete transaction');
-      
-      setTransactions(prev => prev.filter(t => t._id !== id));
+      if (response.ok) {
+        setTransactions(prev => prev.filter(t => t._id !== id));
+      }
     } catch (error) {
       console.error('Error deleting transaction:', error);
       throw error;
     }
   };
 
-  const login = (username: string) => {
-    const userData: User = {
-      username,
-      preferences: {
-        theme: 'light' as const
+  const updateTransaction = async (id: string, transaction: Partial<Transaction>) => {
+    const token = localStorage.getItem('token');
+    if (!token || !user) return;
+
+    try {
+      const response = await fetch(`/api/transactions/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(transaction)
+      });
+
+      if (response.ok) {
+        const updatedTransaction = await response.json();
+        setTransactions(prev => prev.map(t => t._id === id ? updatedTransaction : t));
       }
-    };
-    setUser(userData);
-    localStorage.setItem('budgetUser', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('budgetUser');
+  const DEFAULT_EXPENSE_CATEGORIES = [
+    'Alimentation',
+    'Transport',
+    'Logement',
+    'Loisirs',
+    'Santé',
+    'Shopping',
+    'Factures',
+    'Autre'
+  ];
+
+  const getCategoryOptions = (type: 'income' | 'expense'): string[] => {
+    if (!user) return [];
+    
+    if (type === 'income') {
+      return [...(user.preferences.incomeSources?.map(source => source.name) || []), 'Autre'];
+    }
+    
+    const expenseCategories = user.preferences.defaultCategories
+      ?.filter(cat => cat.type === 'expense')
+      .map(cat => cat.name);
+    
+    return expenseCategories?.length ? [...expenseCategories, 'Autre'] : DEFAULT_EXPENSE_CATEGORIES;
   };
 
-  const toggleTheme = () => {
-    if (!user) return;
-    
-    const newUser: User = {
-      ...user,
-      preferences: {
-        ...user.preferences,
-        theme: user.preferences.theme === 'light' ? 'dark' : 'light'
-      }
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('budgetUser', JSON.stringify(newUser));
+  const formatCurrency = (amount: number): string => {
+    const currency = user?.preferences?.currency || 'USD';
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
   };
 
   return (
-    <BudgetContext.Provider
-      value={{
-        transactions,
-        user,
-        addTransaction,
-        deleteTransaction,
-        login,
-        logout,
-        toggleTheme,
-        categoryTotals,
-        balance,
-        expenseTotal,
-        incomeTotal
-      }}
-    >
+    <BudgetContext.Provider value={{
+      user,
+      transactions,
+      addTransaction,
+      deleteTransaction,
+      updateTransaction,
+      getCategoryOptions,
+      formatCurrency
+    }}>
       {children}
     </BudgetContext.Provider>
   );
-};
+}
 
-export const useBudget = () => {
+export function useBudget() {
   const context = useContext(BudgetContext);
   if (context === undefined) {
     throw new Error('useBudget must be used within a BudgetProvider');
   }
   return context;
-};
+}
