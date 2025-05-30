@@ -47,6 +47,9 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
+      // Forcer un événement de storage pour mettre à jour le contexte
+      window.dispatchEvent(new Event('storage'));
+
       toast({
         title: 'Connexion réussie',
         description: 'Vous allez être redirigé vers le tableau de bord',

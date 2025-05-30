@@ -20,15 +20,39 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (storedUser && token) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      fetchTransactions(token, parsedUser.id);
+  // Fonction pour mettre à jour l'utilisateur et recharger les transactions
+  const updateUserAndFetchData = (newUser: AuthUser | null) => {
+    setUser(newUser);
+    if (newUser) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        fetchTransactions(token, newUser.id);
+      }
+    } else {
+      setTransactions([]);
     }
+  };
+
+  // Écouter les changements d'authentification
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        const parsedUser = JSON.parse(storedUser);
+        updateUserAndFetchData(parsedUser);
+      } else {
+        updateUserAndFetchData(null);
+      }
+    };
+
+    // Initial check
+    handleStorageChange();
+
+    // Listen for changes
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const fetchTransactions = async (token: string, userId: string) => {

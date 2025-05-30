@@ -98,10 +98,17 @@ export default function OnboardingPage() {
         throw new Error('Failed to save preferences');
       }
 
+      const updatedData = await response.json();
+      // Mettre à jour les données de l'utilisateur dans le localStorage
+      localStorage.setItem('user', JSON.stringify(updatedData.user));
+
       toast({
         title: 'Configuration terminée',
         description: 'Vos préférences ont été enregistrées avec succès',
       });
+
+      // Forcer un événement de storage pour mettre à jour le contexte
+      window.dispatchEvent(new Event('storage'));
 
       router.push('/');
     } catch (error) {
