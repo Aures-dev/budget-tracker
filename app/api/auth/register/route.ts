@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         id: user._id,
         username: user.username,
         email: user.email,
+        avatarUrl: user.avatarUrl || null,
         preferences: user.preferences,
         isOnboarded: user.isOnboarded
       },

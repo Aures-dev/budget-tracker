@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Menu } from 'lucide-react';
 import { AuthUser } from '@/types/auth';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export function Header() {
   const router = useRouter();
@@ -30,7 +31,11 @@ export function Header() {
 
     handleStorageChange();
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('userUpdate', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdate', handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -39,6 +44,15 @@ export function Header() {
     setUser(null);
     window.dispatchEvent(new Event('storage'));
     router.push('/login');
+  };
+
+  const getFallbackInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   if (isLoading) {
@@ -117,7 +131,13 @@ export function Header() {
               {user ? (
                 <div className="flex items-center gap-2">
                   <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
-                    <Link href="/profile">
+                    <Link href="/profile" className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatarUrl} alt={user.username} />
+                        <AvatarFallback className="bg-purple-100 text-purple-700 text-sm">
+                          {getFallbackInitials(user.username)}
+                        </AvatarFallback>
+                      </Avatar>
                       <Button
                         variant="ghost"
                         size="sm"

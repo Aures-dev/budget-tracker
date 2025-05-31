@@ -52,6 +52,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  avatarUrl: {
+    type: String,
+    default: null
+  },
   preferences: {
     type: userPreferencesSchema,
     default: () => ({})
