@@ -12,6 +12,7 @@ interface BudgetContextType {
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
   getCategoryOptions: (type: 'income' | 'expense') => string[];
   formatCurrency: (amount: number) => string;
+  toggleTheme: () => void;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
@@ -176,6 +177,38 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }).format(amount);
   };
 
+  const toggleTheme = async () => {
+    if (!user) return;
+    
+    const newTheme = user.preferences.theme === 'dark' ? 'light' : 'dark';
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          preferences: {
+            ...user.preferences,
+            theme: newTheme
+          }
+        })
+      });
+
+      if (response.ok) {
+        const updatedData = await response.json();
+        localStorage.setItem('user', JSON.stringify(updatedData.user));
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (error) {
+      console.error('Error updating theme:', error);
+    }
+  };
+
   return (
     <BudgetContext.Provider value={{
       user,
@@ -184,7 +217,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       deleteTransaction,
       updateTransaction,
       getCategoryOptions,
-      formatCurrency
+      formatCurrency,
+      toggleTheme
     }}>
       {children}
     </BudgetContext.Provider>

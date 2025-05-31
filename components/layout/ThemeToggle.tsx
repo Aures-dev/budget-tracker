@@ -4,16 +4,27 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Moon, Sun } from 'lucide-react';
 import { useBudget } from '@/contexts/BudgetContext';
+import { useTheme } from 'next-themes';
 
 export function ThemeToggle() {
   const { user, toggleTheme } = useBudget();
-  const isDarkMode = user?.preferences.theme === 'dark';
+  const { theme, setTheme } = useTheme();
+  const isDarkMode = user ? user.preferences.theme === 'dark' : theme === 'dark';
+
+  const handleThemeToggle = () => {
+    if (user) {
+      toggleTheme();
+      setTheme(isDarkMode ? 'light' : 'dark');
+    } else {
+      setTheme(isDarkMode ? 'light' : 'dark');
+    }
+  };
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleTheme}
+      onClick={handleThemeToggle}
       aria-label="Toggle theme"
       className="rounded-full transition-colors hover:bg-accent"
     >
