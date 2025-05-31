@@ -149,7 +149,9 @@ export default function ProfilePage() {
                   variant={theme === 'light' ? 'default' : 'outline'}
                   onClick={() => {
                     setTheme('light');
-                    updatePreferences({ theme: 'light' });
+                    if (user) {
+                      updatePreferences({ theme: 'light' });
+                    }
                   }}
                 >
                   Clair
@@ -158,7 +160,9 @@ export default function ProfilePage() {
                   variant={theme === 'dark' ? 'default' : 'outline'}
                   onClick={() => {
                     setTheme('dark');
-                    updatePreferences({ theme: 'dark' });
+                    if (user) {
+                      updatePreferences({ theme: 'dark' });
+                    }
                   }}
                 >
                   Sombre
@@ -167,7 +171,9 @@ export default function ProfilePage() {
                   variant={theme === 'system' ? 'default' : 'outline'}
                   onClick={() => {
                     setTheme('system');
-                    updatePreferences({ theme: undefined });
+                    if (user) {
+                      updatePreferences({ theme: undefined });
+                    }
                   }}
                 >
                   Système
