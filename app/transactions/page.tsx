@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthUser } from '@/types/auth';
 import { TransactionForm } from '@/components/transactions/TransactionForm';
-import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
+import { TransactionsTable } from '@/components/transactions/TransactionsTable';
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function TransactionsPage() {
           </div>
           
           <div className="lg:col-span-3">
-            <RecentTransactions showAll />
+            <TransactionsTable />
           </div>
         </div>
       </div>

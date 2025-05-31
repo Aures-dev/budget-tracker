@@ -14,14 +14,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CATEGORIES } from '@/lib/constants';
 import { useBudget } from '@/contexts/BudgetContext';
 import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { ArrowDownUp, Search, Trash2 } from 'lucide-react';
 import { Transaction } from '@/types';
 
 export function TransactionsTable() {
-  const { transactions, deleteTransaction } = useBudget();
+  const { transactions, deleteTransaction, getCategoryOptions, formatCurrency } = useBudget();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all-categories');
   const [typeFilter, setTypeFilter] = useState('all-types');
@@ -32,6 +32,9 @@ export function TransactionsTable() {
     key: 'date',
     direction: 'descending',
   });
+
+  // Get all unique categories from transactions
+  const allCategories = Array.from(new Set(transactions.map(t => t.category)));
 
   // Filter transactions based on search and category
   const filteredTransactions = transactions.filter(transaction => {
@@ -69,51 +72,45 @@ export function TransactionsTable() {
     }));
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
-
   return (
-    <Card>
+    <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-purple-200 dark:border-purple-800">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl">All Transactions</CardTitle>
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">
+          Toutes les transactions
+        </CardTitle>
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search transactions..."
-              className="pl-8"
+              placeholder="Rechercher des transactions..."
+              className="pl-8 border-purple-300 dark:border-purple-700 focus:ring-2 focus:ring-purple-500"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Categories" />
+              <SelectTrigger className="w-[140px] border-purple-300 dark:border-purple-700 focus:ring-2 focus:ring-purple-500">
+                <SelectValue placeholder="Toutes les catégories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all-categories">All Categories</SelectItem>
-                {CATEGORIES.map((category) => (
-                  <SelectItem key={category.name} value={category.name}>
-                    {category.name}
+                <SelectItem value="all-categories">Toutes les catégories</SelectItem>
+                {allCategories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="All Types" />
+              <SelectTrigger className="w-[130px] border-purple-300 dark:border-purple-700 focus:ring-2 focus:ring-purple-500">
+                <SelectValue placeholder="Tous les types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all-types">All Types</SelectItem>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
+                <SelectItem value="all-types">Tous les types</SelectItem>
+                <SelectItem value="income">Revenus</SelectItem>
+                <SelectItem value="expense">Dépenses</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -122,16 +119,16 @@ export function TransactionsTable() {
       <CardContent>
         {sortedTransactions.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No transactions found.</p>
+            <p className="text-muted-foreground">Aucune transaction trouvée.</p>
           </div>
         ) : (
-          <div className="rounded-md border overflow-hidden">
+          <div className="rounded-md border border-purple-200 dark:border-purple-800 overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-purple-50 dark:bg-purple-900/50">
                   <TableHead className="w-[30%] cursor-pointer" onClick={() => handleSort('title')}>
                     <div className="flex items-center gap-1">
-                      Title
+                      Titre
                       {sortConfig.key === 'title' && (
                         <ArrowDownUp className="h-3 w-3" />
                       )}
@@ -139,13 +136,13 @@ export function TransactionsTable() {
                   </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
                     <div className="flex items-center gap-1">
-                      Amount
+                      Montant
                       {sortConfig.key === 'amount' && (
                         <ArrowDownUp className="h-3 w-3" />
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  <TableHead className="hidden md:table-cell">Catégorie</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('date')}>
                     <div className="flex items-center gap-1">
                       Date
@@ -159,7 +156,7 @@ export function TransactionsTable() {
               </TableHeader>
               <TableBody>
                 {sortedTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
+                  <TableRow key={transaction._id} className="hover:bg-purple-50/50 dark:hover:bg-purple-900/20">
                     <TableCell className="font-medium">
                       <div>
                         {transaction.title}
@@ -169,7 +166,7 @@ export function TransactionsTable() {
                             transaction.type === 'income' ? 'text-green-500 border-green-200' : 'text-red-500 border-red-200'
                           }`}
                         >
-                          {transaction.type}
+                          {transaction.type === 'income' ? 'Revenu' : 'Dépense'}
                         </Badge>
                       </div>
                     </TableCell>
@@ -179,16 +176,19 @@ export function TransactionsTable() {
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline">{transaction.category}</Badge>
+                      <Badge variant="outline" className="bg-purple-50/50 dark:bg-purple-900/20">
+                        {transaction.category}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{format(new Date(transaction.date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteTransaction(transaction.id)}
+                        onClick={() => deleteTransaction(transaction._id)}
+                        className="hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-500"
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>

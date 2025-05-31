@@ -26,6 +26,17 @@ const LANGUAGES = [
   { value: 'en', label: 'English' },
 ];
 
+const DEFAULT_CATEGORIES = [
+  { name: 'Alimentation', type: 'expense' },
+  { name: 'Transport', type: 'expense' },
+  { name: 'Logement', type: 'expense' },
+  { name: 'Loisirs', type: 'expense' },
+  { name: 'Santé', type: 'expense' },
+  { name: 'Shopping', type: 'expense' },
+  { name: 'Factures', type: 'expense' },
+  { name: 'Autre', type: 'expense' }
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -36,7 +47,7 @@ export default function OnboardingPage() {
     language: 'fr',
     theme: 'light',
     incomeSources: [],
-    defaultCategories: [],
+    defaultCategories: DEFAULT_CATEGORIES as { name: string; type: "expense" | "income"; }[],
   });
   const [newIncomeSource, setNewIncomeSource] = useState<Omit<IncomeSource, '_id'>>({
     name: '',
