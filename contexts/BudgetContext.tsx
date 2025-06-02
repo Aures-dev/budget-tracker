@@ -180,7 +180,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = async () => {
     if (!user) return;
     
-    const newTheme = user.preferences.theme === 'dark' ? 'light' : 'dark';
+    const newTheme: 'light' | 'dark' = user.preferences.theme === 'dark' ? 'light' : 'dark';
     const token = localStorage.getItem('token');
 
     try {
@@ -200,9 +200,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        const updatedData = await response.json();
-        localStorage.setItem('user', JSON.stringify(updatedData.user));
-        window.dispatchEvent(new Event('storage'));
+        // Mettre à jour l'utilisateur dans le state et le localStorage
+        const updatedUser: AuthUser = {
+          ...user,
+          preferences: {
+            ...user.preferences,
+            theme: newTheme
+          }
+        };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
     } catch (error) {
       console.error('Error updating theme:', error);
