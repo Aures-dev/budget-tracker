@@ -35,7 +35,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Convertir le fichier en buffer
+    // Convertir le fichier en buffer pour le traitement d'image
+    // Un buffer est une zone mémoire temporaire qui contient les données brutes du fichier
+    // Cette conversion est nécessaire car Cloudinary attend les données d'image sous forme de buffer
+    // pour pouvoir les traiter et les uploader efficacement
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload l'image sur Cloudinary
