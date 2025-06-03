@@ -11,7 +11,7 @@ export interface Transaction {
 export interface User {
   username: string;
   preferences: {
-    theme: 'light' | 'dark';
+    theme: 'light' | 'dark' | 'system';
   };
 }
 

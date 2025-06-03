@@ -148,20 +148,20 @@ export function ExpensesChart() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.div
+            <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="relative h-[250px] w-full"
-          >
+            className="relative h-[350px] w-full md:h-[300px]"
+            >
             <Doughnut data={data} options={options} />
             <div className="absolute inset-0 flex items-center justify-center flex-col" aria-label={`Total des dépenses: ${formatCurrency(expenseTotal)}`}>
               <span className="text-sm text-gray-600 dark:text-gray-400">Total</span>
-              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-500 bg-clip-text text-transparent">
-                {formatCurrency(expenseTotal)}
+              <span className="text-xl font-extrabold bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent">
+              {formatCurrency(expenseTotal)}
               </span>
             </div>
-          </motion.div>
+            </motion.div>
         </CardContent>
       </Card>
     </motion.div>

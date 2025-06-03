@@ -21,6 +21,17 @@ import { ArrowDownUp, Search, Trash2 } from 'lucide-react';
 import { Transaction } from '@/types';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function TransactionsTable() {
   const { transactions, deleteTransaction, getCategoryOptions, formatCurrency } = useBudget();
@@ -217,15 +228,36 @@ export function TransactionsTable() {
                       <TableCell>{format(new Date(transaction.date), 'PPP', { locale: fr })}</TableCell>
                       <TableCell className="text-right">
                         <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.2 }}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteTransaction(transaction._id)}
-                            className="hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-500"
-                            aria-label={`Supprimer la transaction ${transaction.title}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-500"
+                                aria-label={`Supprimer la transaction ${transaction.title}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Supprimer la transaction</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Êtes-vous sûr de vouloir supprimer cette transaction ?
+                                  Cette action est irréversible.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteTransaction(transaction._id, transaction.userId)}
+                                  className="bg-red-500 text-white hover:bg-red-600 focus:ring-red-500"
+                                >
+                                  Supprimer
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </motion.div>
                       </TableCell>
                     </motion.tr>

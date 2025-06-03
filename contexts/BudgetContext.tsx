@@ -8,7 +8,7 @@ interface BudgetContextType {
   user: AuthUser | null;
   transactions: Transaction[];
   addTransaction: (transaction: Omit<Transaction, '_id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
+  deleteTransaction: (id: string, userId: string) => Promise<void>;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>;
   getCategoryOptions: (type: 'income' | 'expense') => string[];
   formatCurrency: (amount: number) => string;
@@ -99,12 +99,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteTransaction = async (id: string) => {
+  const deleteTransaction = async (id: string, userId: string) => {
     const token = localStorage.getItem('token');
     if (!token || !user) return;
 
     try {
-      const response = await fetch(`/api/transactions/${id}`, {
+      const response = await fetch(`/api/transactions?id=${id}&userId=${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

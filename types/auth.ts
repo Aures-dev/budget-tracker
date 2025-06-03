@@ -18,7 +18,7 @@ export interface UserPreferences {
   _id: string;
   currency: string;
   language: string;
-  theme: 'light' | 'dark' | undefined;
+  theme: 'light' | 'dark' | undefined | 'system';
   incomeSources: IncomeSource[];
   defaultCategories: Array<{
     name: string;
