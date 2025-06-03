@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'Budget Tracker',
   description: 'Gérez vos finances personnelles efficacement',
   keywords: 'budget, finances, gestion, dépenses, économies',
-  authors: [{ name: 'Aurès Assogba-zehe', url: 'https://auresaz.vercel.app' }],
+  authors: [{ name: 'Aurès Assogba-zehe', url: new URL(process.env.NEXT_PUBLIC_AUTHOR_URL || 'https://auresaz.vercel.app') }],
   creator: 'Aurès Assogba-zehe',
   openGraph: {
     title: 'Budget Tracker',
