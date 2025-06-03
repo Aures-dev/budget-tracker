@@ -9,8 +9,18 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: 'Budget Tracker',
   description: 'Gérez vos finances personnelles efficacement',
+  keywords: 'budget, finances, gestion, dépenses, économies',
+  authors: [{ name: 'Aurès Assogba-zehe', url: 'https://auresaz.vercel.app' }],
+  creator: 'Aurès Assogba-zehe',
+  openGraph: {
+    title: 'Budget Tracker',
+    description: 'Gérez vos finances personnelles efficacement',
+    siteName: 'Budget Tracker',
+    images: '/opengraph-image.png',
+  },
 };
 
 export default function RootLayout({
